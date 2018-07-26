@@ -18,7 +18,7 @@
 	rs_password: '4b4847a45b334c52e78990e379fcc327eB',
 	rs_database: 'events', 
 	rs_port: 5439,
-	rs_host: 'analytics-redshift-dev.meltwater.net'
+	rs_host: 'analytics-redshift-dev.meltwater.net',
 
 	//RedShift variables - prod
 
