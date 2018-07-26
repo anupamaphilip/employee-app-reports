@@ -28,6 +28,26 @@ function calculateStartDate(end_date, duration) {
   return back_date;
 }
 
+//function to check/Uncheck all the check boxes.
+function checkAll(ele) {
+     var checkboxes = document.getElementsByName('checkerval');
+     if (ele.checked) {
+         for (var i = 0; i < checkboxes.length; i++) {
+             if (checkboxes[i].type == 'checkbox') {
+                 checkboxes[i].checked = true;
+             }
+         }
+     } else {
+         for (var i = 0; i < checkboxes.length; i++) {
+             console.log(i)
+             if (checkboxes[i].type == 'checkbox') {
+                 checkboxes[i].checked = false;
+             }
+         }
+     }
+     console.log("success in selecting all the check boxes");
+ }
+
 //validate inputs selected by user for report
 function validateInputs() {
   var select = document.getElementById('seltype');
@@ -426,9 +446,14 @@ function updateAllReports() {
 
             var sub0 = report.substring(report.indexOf("reports"), report.length);
             //getting the userid from the string
-            var userid = report.substring(90);
-            var username = (userid.split("\\"))[0]; 
-            // alert(username);
+            var subArr, username;
+            if (sub0.indexOf("\\") >= 0) {
+              subArr = sub0.split("\\");  
+            } else {
+              subArr = sub0.split("/");
+            }
+            username = subArr[1];
+            
             var sub1 = sub0.substring(sub0.indexOf("EmpAppUsageStats-"), sub0.length);
             var arr = sub1.split("-");
             var cname = arr[1];            

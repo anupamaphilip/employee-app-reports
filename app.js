@@ -45,7 +45,26 @@ app.use(function(err, req, res, next) {
   res.render('error');
 });
 
+var timeZone = "Australia/Sydney";
+var CronJob = require('cron').CronJob;
+var job = new CronJob('30 10 * * *', function() {
+	  console.log("CRON: Starting cron job to copy data from RedShift to MySQL");
+	  var now1 = new Date();
+	  console.log(now1);
+	  utilsRedshift.data()
+	  	.then(function(result) {
+	      console.log("CRON: Completed cron job");
+	      var now = new Date();
+	  	  console.log(now);
+	      //res.send(result);
+	    });
 
+  }, function () {
+    console.log("CRON: cron job done")
+  },
+  true, /* Start the job right now */
+  timeZone /* Time zone of this job. */
+);
 
 // app.listen(port, function(req,res) {
 //     console.log("Server listening on port " + port);

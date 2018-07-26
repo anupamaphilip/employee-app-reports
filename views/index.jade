@@ -216,6 +216,10 @@ html
                   td
                     font(size='3')
                       label.checkbox-inline
+                        input#checkAll(type='checkbox',name='checkAll',onchange='checkAll(this)') 
+                        | Select All
+                      br
+                      label.checkbox-inline
                         input#app_install(type='checkbox', name='checkerval', value='app_install')
                         | App Installs
                       br
