@@ -107,7 +107,7 @@ module.exports = {
             } else {
               console.log("Successfully set sql_mode");
             }
-            con.query("select document_id, document_title, document_url,channel_name as channel,count(document_id) as view_count from "+config.mysql_database+".view_document_sql where DATE(received_at)>? and DATE(received_at)<=? group by document_id, document_title, document_url order by view_count desc limit 11",[start_date,end_date], function (err, results, fields) 
+            con.query("select document_id, document_title, document_url,channel_name as channel,count(document_id) as view_count from "+config.mysql_database+".view_document_sql where DATE(received_at)>? and DATE(received_at)<=? and context_traits_company_id=? group by document_id, document_title, document_url order by view_count desc limit 11",[start_date,end_date,metrics.companyId], function (err, results, fields) 
             {
               if (err) {
                 console.log("error occurred" + err);
@@ -139,7 +139,7 @@ module.exports = {
                 var sharesArr = [];
                 var commentsArr = [];
 
-                con.query("select document_id, count(document_id) as share_count from "+config.mysql_database+".share_document_sql where document_id in ("+aaa+") and DATE(received_at)>? and DATE(received_at)<=? group by document_id",[start_date,end_date], function (err, resultsShares, fields) 
+                con.query("select document_id, count(document_id) as share_count from "+config.mysql_database+".share_document_sql where document_id in ("+aaa+") and DATE(received_at)>? and DATE(received_at)<=? and context_traits_company_id=? group by document_id",[start_date,end_date,metrics.companyId], function (err, resultsShares, fields) 
                 {
                   if (err) {
                     console.log("error occurred" + err);
@@ -149,7 +149,7 @@ module.exports = {
                     
                     sharesCountArr = resultsShares;
 
-                    con.query("select document_id, count(document_id) as comment_count from "+config.mysql_database+".comment_on_document_sql where document_id in ("+aaa+") and DATE(received_at)>? and DATE(received_at)<=? group by document_id",[start_date,end_date], function (err, resultsComments, fields) 
+                    con.query("select document_id, count(document_id) as comment_count from "+config.mysql_database+".comment_on_document_sql where document_id in ("+aaa+") and DATE(received_at)>? and DATE(received_at)<=? and context_traits_company_id=? group by document_id",[start_date,end_date,metrics.companyId], function (err, resultsComments, fields) 
                     {
                       if (err) {
                         console.log("error occurred" + err);
@@ -158,7 +158,7 @@ module.exports = {
                         
                         commentsCountArr = resultsComments;
 
-                        con.query("select document_id, count(document_id) as save_count from "+config.mysql_database+".saved_document_sql where document_id in ("+aaa+") and DATE(received_at)>? and DATE(received_at)<=? group by document_id",[start_date,end_date], function (err, resultsSaves, fields) 
+                        con.query("select document_id, count(document_id) as save_count from "+config.mysql_database+".saved_document_sql where document_id in ("+aaa+") and DATE(received_at)>? and DATE(received_at)<=? and context_traits_company_id=? group by document_id",[start_date,end_date,metrics.companyId], function (err, resultsSaves, fields) 
                         {
                           if (err) {
                             console.log("error occurred" + err);
@@ -704,6 +704,7 @@ module.exports = {
             {      
               //iterate through all the dates from start date to end date
               //for date, make sure we get the right format
+
               var appInstallsArr = [];
               var endDate = new Date(end_date);
               for (var d = new Date(start_date); d <= endDate; d.setDate(d.getDate() + 1)) 
@@ -712,21 +713,24 @@ module.exports = {
                 var obj;
                 var boolSetFromDB = 0;
                 var dateDataPoint = new Date(d);
-                //console.log(dateDataPoint);
-                //console.log("results:");
-                //console.log(results);
+                var localTime = dateDataPoint.getTimezoneOffset();
+                /*console.log("the UTC time: ");
+                console.log(dateDataPoint);
+                console.log("date converted using getTimezoneOffset function");
+                console.log(localTime);*/
+
+                var currentLocalTime = new Date(dateDataPoint + localTime);
                 for(var key in results) 
                 {
                   var row = results[key];
-                  //console.log(row.Date);
-                  if ((new Date(row.Date)).valueOf() == dateDataPoint.valueOf()) {
-                    obj = {day:row.Date,ios:row.ios,android:row.android,total:row.total};
+                  if ((new Date(row.Date)).valueOf() == new Date(dateDataPoint).valueOf()) {
+                    obj = {day:currentLocalTime,ios:row.ios,android:row.android,total:row.total};
                     boolSetFromDB = 1;
                     break;
                   }
                 }
                 if (boolSetFromDB == 0) {
-                  obj = {day:dateDataPoint,ios:0,android:0,total:0};
+                  obj = {day:currentLocalTime,ios:0,android:0,total:0};
                 }
                 appInstallsArr.push(obj);
                 
@@ -784,19 +788,20 @@ module.exports = {
                 var obj;
                 var boolSetFromDB = 0;
                 var dateDataPoint = new Date(d);
-                //console.log(dateDataPoint);
+                var localTime = dateDataPoint.getTimezoneOffset();
+                var currentLocalTime = new Date(dateDataPoint + localTime);
                 for(var key in results) 
                 {
                   var row = results[key];
                   //console.log(row.Date);
                   if ((new Date(row.Date)).valueOf() == dateDataPoint.valueOf()) {
-                    obj = {day:row.Date,ios:row.ios,android:row.android,total:row.total};
+                    obj = {day:currentLocalTime,ios:row.ios,android:row.android,total:row.total};
                     boolSetFromDB = 1;
                     break;
                   }
                 }
                 if (boolSetFromDB == 0) {
-                  obj = {day:dateDataPoint,ios:0,android:0,total:0};
+                  obj = {day:currentLocalTime,ios:0,android:0,total:0};
                 }
                 activeUsersArr.push(obj);
               }
@@ -845,19 +850,20 @@ module.exports = {
                 var obj;
                 var boolSetFromDB = 0;
                 var dateDataPoint = new Date(d);
-                //console.log(dateDataPoint);
+                var localTime = dateDataPoint.getTimezoneOffset();
+                var currentLocalTime = new Date(dateDataPoint + localTime);
                 for(var key in results) 
                 {
                   var row = results[key];
                   //console.log(row.Date);
                   if ((new Date(row.Date)).valueOf() == dateDataPoint.valueOf()) {
-                    obj = {day:row.Date,ios:row.ios,android:row.android,total:row.total};
+                    obj = {day:currentLocalTime,ios:row.ios,android:row.android,total:row.total};
                     boolSetFromDB = 1;
                     break;
                   }
                 }
                 if (boolSetFromDB == 0) {
-                  obj = {day:dateDataPoint,ios:0,android:0,total:0};
+                  obj = {day:currentLocalTime,ios:0,android:0,total:0};
                 }
                 appSessionArr.push(obj);
                
@@ -866,7 +872,7 @@ module.exports = {
               if (duration == "30days"){appsession30daysArr = appSessionArr; console.log(appsession30daysArr);}
               console.log("Done with getting data from db, moving on to avg now, get active users first");
               //Query for Active Users
-              con.query("SELECT DATE(received_at) as Date, SUM(case when context_device_type = 'ios' then 1 else 0 end) as ios, SUM(case when context_device_type = 'android' then 1 else 0 end) as android,SUM(case when context_device_type = 'ios' then 1 else 0 end + case when context_device_type = 'android' then 1 else 0 end) as total from " + config.mysql_database + ".users_sql WHERE context_traits_company_id = ? AND DATE(received_at)>? and DATE(received_at)<=? GROUP BY DATE(received_at)",[metrics.companyId,start_date,end_date], function (err, results, fields) 
+              con.query("SELECT DATE(received_at) as Date, SUM(case when context_device_type = 'ios' then 1 else 0 end) as ios, SUM(case when context_device_type = 'android' then 1 else 0 end) as android from " + config.mysql_database + ".users_sql WHERE context_traits_company_id = ? AND DATE(received_at)>? and DATE(received_at)<=? GROUP BY DATE(received_at)",[metrics.companyId,start_date,end_date], function (err, results, fields) 
               {
                 if (err) {
                 console.log("error occurred" + err);
@@ -881,17 +887,19 @@ module.exports = {
                     var obj;
                     var boolSetFromDB = 0;
                     var dateDataPoint = new Date(d);
+                    var localTime = dateDataPoint.getTimezoneOffset();
+                    var currentLocalTime = new Date(dateDataPoint + localTime);
                     for(var key in results) 
                     {
                       var row = results[key];
                       if ((new Date(row.Date)).valueOf() == dateDataPoint.valueOf()) {
-                        obj = {day:row.Date,ios:row.ios,android:row.android,total:row.total};
+                        obj = {day:currentLocalTime,ios:row.ios,android:row.android};
                         boolSetFromDB = 1;
                         break;
                       }
                     }
                     if (boolSetFromDB == 0) {
-                      obj = {day:dateDataPoint,ios:0,android:0,total:0};
+                      obj = {day:currentLocalTime,ios:0,android:0};
                     }
                     activeUsersArrForAv.push(obj);
                     //console.log("the object for activeUsersArrForAv");
@@ -911,7 +919,7 @@ module.exports = {
                       androidAvg = parseFloat(appsession7daysArr[key].android)/parseFloat(activeUsersArrForAv[key].android);
                       if (isNaN(androidAvg)) androidAvg = 0;
                       if(androidAvg == "Infinity") androidAvg = 0;
-                      totalAvg = parseInt(appsession7daysArr[key].total)/parseInt(activeUsersArrForAv[key].total);
+                      totalAvg = iOSAvg + androidAvg;
                       if (isNaN(totalAvg)) totalAvg = 0;
                       if(totalAvg == "Infinity") totalAvg = 0;
                     }
@@ -923,14 +931,14 @@ module.exports = {
                       androidAvg = parseFloat(appsession30daysArr[key].android)/parseFloat(activeUsersArrForAv[key].android);
                       if (isNaN(androidAvg)) androidAvg = 0;
                       if(androidAvg == "Infinity") androidAvg = 0;
-                      totalAvg = parseInt(appsession30daysArr[key].total)/parseInt(activeUsersArrForAv[key].total);
+                      totalAvg = iOSAvg + androidAvg;
                       if (isNaN(totalAvg)) totalAvg = 0;
                       if(totalAvg == "Infinity") totalAvg = 0;
                     }
 
                     // objAvg = {day:activeUsersArrForAv[key].day,ios:iOSAvg,android:androidAvg,total:totalAvg};
                     //objAvg = {day:activeUsersArrForAv[key].day,ios:roundTo(iOSAvg,2),android:roundTo(androidAvg,2)};
-                    objAvg = {day:activeUsersArrForAv[key].day,ios:iOSAvg,android:androidAvg,total:activeUsersArrForAv[key].total,totalAvg:totalAvg};
+                    objAvg = {day:activeUsersArrForAv[key].day,ios:iOSAvg,android:androidAvg,totalAvg:totalAvg};
                     appSessionArrAvg.push(objAvg);
                     
                   }
@@ -987,19 +995,20 @@ module.exports = {
                 var obj;
                 var boolSetFromDB = 0;
                 var dateDataPoint = new Date(d);
-                //console.log(dateDataPoint);
+                var localTime = dateDataPoint.getTimezoneOffset();
+                var currentLocalTime = new Date(dateDataPoint + localTime);
                 for(var key in results) 
                 {
                   var row = results[key];
                   //console.log(row.Date);
                   if ((new Date(row.Date)).valueOf() == dateDataPoint.valueOf()) {
-                    obj = {day:row.Date,ios:row.ios,android:row.android,total:row.total};
+                    obj = {day:currentLocalTime,ios:row.ios,android:row.android,total:row.total};
                     boolSetFromDB = 1;
                     break;
                   }
                 }
                 if (boolSetFromDB == 0) {
-                  obj = {day:dateDataPoint,ios:0,android:0,total:0};
+                  obj = {day:currentLocalTime,ios:0,android:0,total:0};
                 }
                 docsReadArr.push(obj);
               }
@@ -1009,7 +1018,7 @@ module.exports = {
               console.log(docsReadArr);
               console.log("Done with getting data from db, moving on to avg now, get active users first");
               //Query for active users
-              con.query("SELECT DATE(received_at) as Date, SUM(case when context_device_type = 'ios' then 1 else 0 end) as ios, SUM(case when context_device_type = 'android' then 1 else 0 end) as android,SUM(case when context_device_type = 'ios' then 1 else 0 end + case when context_device_type = 'android' then 1 else 0 end) as total from " + config.mysql_database + ".users_sql WHERE context_traits_company_id = ? AND DATE(received_at)>? and DATE(received_at)<=? GROUP BY DATE(received_at)",[metrics.companyId,start_date,end_date], function (err, results, fields) 
+              con.query("SELECT DATE(received_at) as Date, SUM(case when context_device_type = 'ios' then 1 else 0 end) as ios, SUM(case when context_device_type = 'android' then 1 else 0 end) as android from " + config.mysql_database + ".users_sql WHERE context_traits_company_id = ? AND DATE(received_at)>? and DATE(received_at)<=? GROUP BY DATE(received_at)",[metrics.companyId,start_date,end_date], function (err, results, fields) 
               {
                 if (err) {
                 console.log("error occurred" + err);
@@ -1024,18 +1033,20 @@ module.exports = {
                     var obj;
                     var boolSetFromDB = 0;
                     var dateDataPoint = new Date(d);
+                    var localTime = dateDataPoint.getTimezoneOffset();
+                    var currentLocalTime = new Date(dateDataPoint + localTime);
                     for(var key in results) 
                     {
                       var row = results[key];
                       //console.log(row.Date);
                       if ((new Date(row.Date)).valueOf() == dateDataPoint.valueOf()) {
-                        obj = {day:row.Date,ios:row.ios,android:row.android,total:row.total};
+                        obj = {day:currentLocalTime,ios:row.ios,android:row.android};
                         boolSetFromDB = 1;
                         break;
                       }
                     }
                     if (boolSetFromDB == 0) {
-                      obj = {day:dateDataPoint,ios:0,android:0,total:0};
+                      obj = {day:currentLocalTime,ios:0,android:0,total:0};
                     }
                     activeUsersArrForAv.push(obj);
                   }
@@ -1053,7 +1064,7 @@ module.exports = {
                       androidAvg = parseFloat(docsRead7daysArr[key].android)/parseFloat(activeUsersArrForAv[key].android);
                       if (isNaN(androidAvg)) androidAvg = 0;
                       if(androidAvg == "Infinity") androidAvg = 0;
-                      totalAvg = parseInt(appsession7daysArr[key].total)/parseInt(activeUsersArrForAv[key].total);
+                      totalAvg = iOSAvg + androidAvg;
                       if (isNaN(totalAvg)) totalAvg = 0;
                       if(totalAvg == "Infinity") totalAvg = 0;
                     }
@@ -1065,14 +1076,14 @@ module.exports = {
                       androidAvg = parseFloat(docsRead30daysArr[key].android)/parseFloat(activeUsersArrForAv[key].android);
                       if (isNaN(androidAvg)) androidAvg = 0;
                       if(androidAvg == "Infinity") androidAvg = 0;
-                      totalAvg = parseInt(appsession30daysArr[key].total)/parseInt(activeUsersArrForAv[key].total);
+                      totalAvg = iOSAvg + androidAvg;
                       if (isNaN(totalAvg)) totalAvg = 0;
                       if(totalAvg == "Infinity") totalAvg = 0;
                     }
 
                     // objAvg = {day:activeUsersArrForAv[key].day,ios:iOSAvg,android:androidAvg,total:totalAvg};
                     //objAvg = {day:activeUsersArrForAv[key].day,ios:roundTo(iOSAvg,2),android:roundTo(androidAvg,2)};
-                    objAvg = {day:activeUsersArrForAv[key].day,ios:iOSAvg,android:androidAvg,total:activeUsersArrForAv[key].total,totalAvg:totalAvg};
+                    objAvg = {day:activeUsersArrForAv[key].day,ios:iOSAvg,android:androidAvg,totalAvg:totalAvg};
                     docsReadArrAvg.push(objAvg);
                     
                   }
@@ -1127,19 +1138,20 @@ module.exports = {
                 var obj;
                 var boolSetFromDB = 0;
                 var dateDataPoint = new Date(d);
-                //console.log(dateDataPoint);
+                var localTime = dateDataPoint.getTimezoneOffset();
+                var currentLocalTime = new Date(dateDataPoint + localTime);
                 for(var key in results) 
                 {
                   var row = results[key];
                   //console.log(row.Date);
                   if ((new Date(row.Date)).valueOf() == dateDataPoint.valueOf()) {
-                    obj = {day:row.Date,ios:row.ios,android:row.android,total:row.total};
+                    obj = {day:currentLocalTime,ios:row.ios,android:row.android,total:row.total};
                     boolSetFromDB = 1;
                     break;
                   }
                 }
                 if (boolSetFromDB == 0) {
-                  obj = {day:dateDataPoint,ios:0,android:0,total:0};
+                  obj = {day:currentLocalTime,ios:0,android:0,total:0};
                 }
                 docsSharedArr.push(obj);
               }
@@ -1149,7 +1161,7 @@ module.exports = {
                 console.log(docsSharedArr);
                 console.log("Done with getting data from db, moving on to avg now, get active users first");
                 
-                con.query("SELECT DATE(received_at) as Date, SUM(case when context_device_type = 'ios' then 1 else 0 end) as ios, SUM(case when context_device_type = 'android' then 1 else 0 end) as android,SUM(case when context_device_type = 'ios' then 1 else 0 end + case when context_device_type = 'android' then 1 else 0 end) as total from " + config.mysql_database + ".users_sql WHERE context_traits_company_id = ? AND DATE(received_at)>? and DATE(received_at)<=? GROUP BY DATE(received_at)",[metrics.companyId,start_date,end_date], function (err, results, fields) 
+                con.query("SELECT DATE(received_at) as Date, SUM(case when context_device_type = 'ios' then 1 else 0 end) as ios, SUM(case when context_device_type = 'android' then 1 else 0 end) as android from " + config.mysql_database + ".users_sql WHERE context_traits_company_id = ? AND DATE(received_at)>? and DATE(received_at)<=? GROUP BY DATE(received_at)",[metrics.companyId,start_date,end_date], function (err, results, fields) 
                 {
                   if (err) {
                   console.log("error occurred" + err);
@@ -1164,18 +1176,20 @@ module.exports = {
                       var obj;
                       var boolSetFromDB = 0;
                       var dateDataPoint = new Date(d);
+                      var localTime = dateDataPoint.getTimezoneOffset();
+                      var currentLocalTime = new Date(dateDataPoint + localTime);
                       for(var key in results) 
                       {
                         var row = results[key];
                         //console.log(row.Date);
                         if ((new Date(row.Date)).valueOf() == dateDataPoint.valueOf()) {
-                          obj = {day:row.Date,ios:row.ios,android:row.android,total:row.total};
+                          obj = {day:currentLocalTime,ios:row.ios,android:row.android};
                           boolSetFromDB = 1;
                           break;
                         }
                       }
                       if (boolSetFromDB == 0) {
-                        obj = {day:dateDataPoint,ios:0,android:0,total:0};
+                        obj = {day:currentLocalTime,ios:0,android:0};
                       }
                       activeUsersArrForAv.push(obj);
                     }
@@ -1193,7 +1207,7 @@ module.exports = {
                         androidAvg = parseFloat(docsShared7daysArr[key].android)/parseFloat(activeUsersArrForAv[key].android);
                         if (isNaN(androidAvg)) androidAvg = 0;
                         if(androidAvg == "Infinity") androidAvg = 0;
-                        totalAvg = parseInt(docsShared7daysArr[key].total)/parseInt(activeUsersArrForAv[key].total);
+                        totalAvg = iOSAvg + androidAvg;
                         if (isNaN(totalAvg)) totalAvg = 0;
                         if(totalAvg == "Infinity") totalAvg = 0;
                       }
@@ -1205,14 +1219,14 @@ module.exports = {
                         androidAvg = parseFloat(docsShared30daysArr[key].android)/parseFloat(activeUsersArrForAv[key].android);
                         if (isNaN(androidAvg)) androidAvg = 0;
                         if(androidAvg == "Infinity") androidAvg = 0;
-                        totalAvg = parseInt(docsShared30daysArr[key].total)/parseInt(activeUsersArrForAv[key].total);
+                        totalAvg = iOSAvg + androidAvg;
                         if (isNaN(totalAvg)) totalAvg = 0;
                         if(totalAvg == "Infinity") totalAvg = 0;
                       }
 
                       // objAvg = {day:activeUsersArrForAv[key].day,ios:iOSAvg,android:androidAvg,total:totalAvg};
                       //objAvg = {day:activeUsersArrForAv[key].day,ios:roundTo(iOSAvg,2),android:roundTo(androidAvg,2)};
-                      objAvg = {day:activeUsersArrForAv[key].day,ios:iOSAvg,android:androidAvg,totalAvg:totalAvg,total:activeUsersArrForAv[key].total};
+                      objAvg = {day:activeUsersArrForAv[key].day,ios:iOSAvg,android:androidAvg,totalAvg:totalAvg};
                       docsSharedArrAvg.push(objAvg);
                       
                     }
@@ -1268,19 +1282,20 @@ module.exports = {
                 var obj;
                 var boolSetFromDB = 0;
                 var dateDataPoint = new Date(d);
-                //console.log(dateDataPoint);
+                var localTime = dateDataPoint.getTimezoneOffset();
+                var currentLocalTime = new Date(dateDataPoint + localTime);
                 for(var key in results) 
                 {
                   var row = results[key];
                   //console.log(row.Date);
                   if ((new Date(row.Date)).valueOf() == dateDataPoint.valueOf()) {
-                    obj = {day:row.Date,ios:row.ios,android:row.android,total:row.total};
+                    obj = {day:currentLocalTime,ios:row.ios,android:row.android,total:row.total};
                     boolSetFromDB = 1;
                     break;
                   }
                 }
                 if (boolSetFromDB == 0) {
-                  obj = {day:dateDataPoint,ios:0,android:0,total:0};
+                  obj = {day:currentLocalTime,ios:0,android:0,total:0};
                 }
                 commentsArr.push(obj);
               }
@@ -1290,7 +1305,7 @@ module.exports = {
                 console.log(commentsArr);
                 console.log("Done with getting data from db, moving on to avg now, get active users first");
                 //active users
-                con.query("SELECT DATE(received_at) as Date, SUM(case when context_device_type = 'ios' then 1 else 0 end) as ios, SUM(case when context_device_type = 'android' then 1 else 0 end) as android,SUM(case when context_device_type = 'ios' then 1 else 0 end + case when context_device_type = 'android' then 1 else 0 end) as total from " + config.mysql_database + ".users_sql WHERE context_traits_company_id = ? AND DATE(received_at)>? and DATE(received_at)<=? GROUP BY DATE(received_at)",[metrics.companyId,start_date,end_date], function (err, results, fields) 
+                con.query("SELECT DATE(received_at) as Date, SUM(case when context_device_type = 'ios' then 1 else 0 end) as ios, SUM(case when context_device_type = 'android' then 1 else 0 end) as android from " + config.mysql_database + ".users_sql WHERE context_traits_company_id = ? AND DATE(received_at)>? and DATE(received_at)<=? GROUP BY DATE(received_at)",[metrics.companyId,start_date,end_date], function (err, results, fields) 
                 {
                   if (err) {
                   console.log("error occurred" + err);
@@ -1305,18 +1320,20 @@ module.exports = {
                       var obj;
                       var boolSetFromDB = 0;
                       var dateDataPoint = new Date(d);
+                      var localTime = dateDataPoint.getTimezoneOffset();
+                      var currentLocalTime = new Date(dateDataPoint + localTime);
                       for(var key in results) 
                       {
                         var row = results[key];
                         //console.log(row.Date);
                         if ((new Date(row.Date)).valueOf() == dateDataPoint.valueOf()) {
-                          obj = {day:row.Date,ios:row.ios,android:row.android,total:row.total};
+                          obj = {day:currentLocalTime,ios:row.ios,android:row.android};
                           boolSetFromDB = 1;
                           break;
                         }
                       }
                       if (boolSetFromDB == 0) {
-                        obj = {day:dateDataPoint,ios:0,android:0,total:0};
+                        obj = {day:currentLocalTime,ios:0,android:0};
                       }
                       activeUsersArrForAv.push(obj);
                     }
@@ -1334,7 +1351,7 @@ module.exports = {
                         androidAvg = parseFloat(comments7daysArr[key].android)/parseFloat(activeUsersArrForAv[key].android);
                         if (isNaN(androidAvg)) androidAvg = 0;
                         if(androidAvg == "Infinity") androidAvg = 0;
-                        totalAvg = parseInt(comments7daysArr[key].total)/parseInt(activeUsersArrForAv[key].total);
+                        totalAvg = iOSAvg + androidAvg;
                         if (isNaN(totalAvg)) totalAvg = 0;
                         if(totalAvg == "Infinity") totalAvg = 0;
                       }
@@ -1346,14 +1363,14 @@ module.exports = {
                         androidAvg = parseFloat(comments30daysArr[key].android)/parseFloat(activeUsersArrForAv[key].android);
                         if (isNaN(androidAvg)) androidAvg = 0;
                         if(androidAvg == "Infinity") androidAvg = 0;
-                        totalAvg = parseInt(comments30daysArr[key].total)/parseInt(activeUsersArrForAv[key].total);
+                        totalAvg = iOSAvg + androidAvg;
                         if (isNaN(totalAvg)) totalAvg = 0;
                         if(totalAvg == "Infinity") totalAvg = 0;
                       }
 
                       // objAvg = {day:activeUsersArrForAv[key].day,ios:iOSAvg,android:androidAvg,total:totalAvg};
                       //objAvg = {day:activeUsersArrForAv[key].day,ios:roundTo(iOSAvg,2),android:roundTo(androidAvg,2)};
-                      objAvg = {day:activeUsersArrForAv[key].day,ios:iOSAvg,android:androidAvg,totalAvg:totalAvg,total:activeUsersArrForAv[key].total};
+                      objAvg = {day:activeUsersArrForAv[key].day,ios:iOSAvg,android:androidAvg,totalAvg:totalAvg};
                       commentsArrAvg.push(objAvg);
                       //console.log("average of comments");
                       //console.log(commentsArrAvg);
@@ -1410,19 +1427,20 @@ module.exports = {
                 var obj;
                 var boolSetFromDB = 0;
                 var dateDataPoint = new Date(d);
-                //console.log(dateDataPoint);
+                var localTime = dateDataPoint.getTimezoneOffset();
+                var currentLocalTime = new Date(dateDataPoint + localTime);
                 for(var key in results) 
                 {
                   var row = results[key];
                   //console.log(row.Date);
                   if ((new Date(row.Date)).valueOf() == dateDataPoint.valueOf()) {
-                    obj = {day:row.Date,ios:row.ios,android:row.android,total:row.total};
+                    obj = {day:currentLocalTime,ios:row.ios,android:row.android,total:row.total};
                     boolSetFromDB = 1;
                     break;
                   }
                 }
                 if (boolSetFromDB == 0) {
-                  obj = {day:dateDataPoint,ios:0,android:0,total:0};
+                  obj = {day:currentLocalTime,ios:0,android:0,total:0};
                 }
                 docsSavedArr.push(obj);
                 
@@ -1432,7 +1450,7 @@ module.exports = {
               console.log(docsSavedArr);
               console.log("Done with getting data from db, moving on to avg now, get active users first");
                 //active users
-                con.query("SELECT DATE(received_at) as Date, SUM(case when context_device_type = 'ios' then 1 else 0 end) as ios, SUM(case when context_device_type = 'android' then 1 else 0 end) as android,SUM(case when context_device_type = 'ios' then 1 else 0 end + case when context_device_type = 'android' then 1 else 0 end) as total from " + config.mysql_database + ".users_sql WHERE context_traits_company_id = ? AND DATE(received_at)>? and DATE(received_at)<=? GROUP BY DATE(received_at)",[metrics.companyId,start_date,end_date], function (err, results, fields) 
+                con.query("SELECT DATE(received_at) as Date, SUM(case when context_device_type = 'ios' then 1 else 0 end) as ios, SUM(case when context_device_type = 'android' then 1 else 0 end) as android from " + config.mysql_database + ".users_sql WHERE context_traits_company_id = ? AND DATE(received_at)>? and DATE(received_at)<=? GROUP BY DATE(received_at)",[metrics.companyId,start_date,end_date], function (err, results, fields) 
                 {
                   if (err) {
                   console.log("error occurred" + err);
@@ -1447,18 +1465,20 @@ module.exports = {
                       var obj;
                       var boolSetFromDB = 0;
                       var dateDataPoint = new Date(d);
+                      var localTime = dateDataPoint.getTimezoneOffset();
+                      var currentLocalTime = new Date(dateDataPoint + localTime);
                       for(var key in results) 
                       {
                         var row = results[key];
                         //console.log(row.Date);
                         if ((new Date(row.Date)).valueOf() == dateDataPoint.valueOf()) {
-                          obj = {day:row.Date,ios:row.ios,android:row.android,total:row.total};
+                          obj = {day:currentLocalTime,ios:row.ios,android:row.android};
                           boolSetFromDB = 1;
                           break;
                         }
                       }
                       if (boolSetFromDB == 0) {
-                        obj = {day:dateDataPoint,ios:0,android:0,total:0};
+                        obj = {day:currentLocalTime,ios:0,android:0};
                       }
                       activeUsersArrForAv.push(obj);
                     }
@@ -1476,7 +1496,7 @@ module.exports = {
                         androidAvg = parseFloat(saved7daysArr[key].android)/parseFloat(activeUsersArrForAv[key].android);
                         if (isNaN(androidAvg)) androidAvg = 0;
                         if(androidAvg == "Infinity") androidAvg = 0;
-                        totalAvg = parseInt(saved7daysArr[key].total)/parseInt(activeUsersArrForAv[key].total);
+                        totalAvg = iOSAvg + androidAvg;
                         if (isNaN(totalAvg)) totalAvg = 0;
                         if(totalAvg == "Infinity") totalAvg = 0;
                       }
@@ -1488,14 +1508,14 @@ module.exports = {
                         androidAvg = parseFloat(saved30daysArr[key].android)/parseFloat(activeUsersArrForAv[key].android);
                         if (isNaN(androidAvg)) androidAvg = 0;
                         if(androidAvg == "Infinity") androidAvg = 0;
-                        totalAvg = parseInt(saved30daysArr[key].total)/parseInt(activeUsersArrForAv[key].total);
+                        totalAvg = iOSAvg + androidAvg;
                         if (isNaN(totalAvg)) totalAvg = 0;
                         if(totalAvg == "Infinity") totalAvg = 0;
                       }
 
                       // objAvg = {day:activeUsersArrForAv[key].day,ios:iOSAvg,android:androidAvg,total:totalAvg};
                       //objAvg = {day:activeUsersArrForAv[key].day,ios:roundTo(iOSAvg,2),android:roundTo(androidAvg,2)};
-                      objAvg = {day:activeUsersArrForAv[key].day,ios:iOSAvg,android:androidAvg,totalAvg:totalAvg,total:activeUsersArrForAv[key].total};
+                      objAvg = {day:activeUsersArrForAv[key].day,ios:iOSAvg,android:androidAvg,totalAvg:totalAvg};
                       savesArrAvg.push(objAvg);
                       //console.log("average of docs saved");
                       //console.log(savesArrAvg);

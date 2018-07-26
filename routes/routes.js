@@ -153,6 +153,8 @@ router.get('/getAllReports', function (req, res)
         console.log("reports by users");
         var reports = [];
         var report;
+         var dataFiles = [];
+          var sortedData;
         for(var key=0; key<content.length;key++)
         {
           console.log("userId"); 
@@ -161,24 +163,44 @@ router.get('/getAllReports', function (req, res)
           console.log(userid);*/
           loc = './public/reports/' + content[key];
           console.log("location of reports");
-          /*console.log(loc);*/  
+          fs.readdirSync(loc).forEach(files =>{  
+            if (files) { 
+              dataFiles.push(files);
+              console.log("the value of data files");
+              console.log(dataFiles);
 
-          fs.readdirSync(loc).forEach(files =>{   
-            if (files) {
-              /*console.log("printing files");
-              console.log(files);*/
-                if (files != ".DS_Store") {
-                  report = path.join(__dirname, loc, files);
+               sortedData = dataFiles.sort(function(a,b){
+                  var dir2 = __dirname.substring(0, __dirname.indexOf('routes')) + './public/reports/' + content[key] + "/";
+                  return fs.statSync(dir2 + b).mtime.getTime() - fs.statSync(dir2 + a).mtime.getTime(); 
+
+                }); 
+
+               console.log("sorted data");
+               console.log(sortedData);
+               /*if (sortedData != ".DS_Store") {
+                  report = path.join(__dirname,'./public/reports/' + content[key] + "/" + sortedData);
                   reports.push(report);
-                  /*console.log(reports);*/
-                }
-            } else {
+                } */  
+            } 
+             else {
               console.log("inside else");
               res.send("No recent exports");
             }
           }); 
+
+          dataFiles = [];  
+          /*if (sortedData != ".DS_Store") {
+                  report = path.join(__dirname,'./public/reports/' + content[key] + "/" + sortedData);
+                  reports.push(report);
+                }   */
+          for(var sData = 0; sData<sortedData.length;sData++) {
+                  report = path.join(__dirname,'./public/reports/' + content[key] + "/" + sortedData[sData]);
+                  reports.push(report);
+                }   
+             
         }
-        console.log(reports.length);
+        
+        console.log(reports.length);  
         if (reports.length <= 0) {
           /*console.log(reports);*/
           console.log("sending that no reports for user");
